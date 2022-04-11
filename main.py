@@ -22,7 +22,7 @@ class RecruitmentStatus(Enum):
     ACTIVE = auto()
 
     @classmethod
-    async def convert(cls, ctx, role: str):
+    async def convert(cls, ctx: commands.Context, role: str):
         try:
             return cls[role.upper()]
         except ValueError:
@@ -31,7 +31,7 @@ class RecruitmentStatus(Enum):
 
 @dataclass
 class RecruitQueue:
-    queue: dict[discord.Member : RecruitmentStatus]
+    queue: dict[discord.Member: RecruitmentStatus]
     active_user: discord.Member | None = None
 
     def update_user(
@@ -64,16 +64,15 @@ def save_recruiters_to_yaml(queue: dict, filename: str) -> None:
     )
 
 
-RQ = RecruitQueue({})
+bot.RQ = RecruitQueue({})
 
 
 @bot.event
 async def on_ready():
-    global RQ
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
     print("------")
     recruiters = load_recruiters_from_yaml("recruiters.yaml")
-    RQ = RecruitQueue(recruiters)
+    bot.RQ = RecruitQueue(recruiters)
     await bot.get_channel(945513732115673192).send("I just restarted!")
 
 
@@ -82,13 +81,13 @@ async def set_status(ctx: commands.Context, stat: str):
     try:
         if (
             RecruitmentStatus[stat.upper()] == RecruitmentStatus.ACTIVE
-            and RecruitmentStatus.ACTIVE in RQ.queue.values()
+            and RecruitmentStatus.ACTIVE in bot.RQ.queue.values()
         ):
             await ctx.channel.send(
-                f"{RQ.active_user} is already actively recruiting. Ask them to leave first."
+                f"{bot.RQ.active_user} is already actively recruiting. Ask them to leave first."
             )
         else:
-            RQ.update_user(ctx.author, RecruitmentStatus[stat.upper()])
+            bot.RQ.update_user(ctx.author, RecruitmentStatus[stat.upper()])
             await ctx.channel.send(f"{ctx.author} is now {stat.lower()}.")
     except ValueError:
         await ctx.channel.send(
@@ -96,7 +95,7 @@ async def set_status(ctx: commands.Context, stat: str):
             f"Valid statuses are: {', '.join([rs.name for rs in RecruitmentStatus])}."
         )
     finally:
-        save_recruiters_to_yaml(RQ.queue, "recruiters.yaml")
+        save_recruiters_to_yaml(bot.RQ.queue, "recruiters.yaml")
 
 
 @bot.command()
@@ -111,8 +110,8 @@ async def ready(ctx: commands.Context):
 
 @bot.command()
 async def leave(ctx: commands.Context):
-    if ctx.author in RQ.queue.keys():
-        RQ.update_user(ctx.author, None)
+    if ctx.author in bot.RQ.queue.keys():
+        bot.RQ.update_user(ctx.author, None)
         await ctx.channel.send(f"{ctx.author} has left the queue.")
     else:
         await ctx.channel.send("You can't leave something you aren't a part of!")
@@ -125,10 +124,10 @@ async def display(ctx: commands.Context):
         embed=discord.Embed(
             title="Current Recruiters",
             description="Name:\t\t\t\tStatus\n"
-            + (f"**{RQ.active_user}: ACTIVE**\n" if RQ.active_user is not None else "")
+            + (f"**{bot.RQ.active_user}: ACTIVE**\n" if bot.RQ.active_user is not None else "")
             + "\n".join(
                 f"{user}:\t\t\t\t{status.name}"
-                for (user, status) in RQ.queue.items()
+                for (user, status) in bot.RQ.queue.items()
                 if status != RecruitmentStatus.ACTIVE
             ),
         ).set_footer(text=f"Project BATON: {version}")
@@ -144,9 +143,9 @@ async def user_from_id(ctx: commands.Context, id_: int):
 async def ping(ctx: commands.Context, role: RecruitmentStatus, *, msg: str = ""):
     await ctx.channel.send(
         f"{ctx.author.mention} -> "
-        f"{' '.join([user.mention for (user, status) in RQ.queue.items() if status == role])}"
+        f"{' '.join([user.mention for (user, status) in bot.RQ.queue.items() if status == role])}"
         + (f": {msg}" if msg != "" else "")
-        if role in RQ.queue.values()
+        if role in bot.RQ.queue.values()
         else f"Literally nobody is {role.name.lower()} right now."
     )
 
