@@ -1,5 +1,5 @@
 # Project BATON
-Version: T is for Transitional
+Version: T is for Testing
 
 Programming specifics: Uses Python 3.10, requires libraries `py-cord` (a d.py fork) and `PyYAML` (to store recruitment data).
 # Structures
@@ -24,3 +24,7 @@ Removes a user from the queue completely.
 Provides an embed listing the users in the queue (including the `ACTIVE` user).
 ## ping \[status] \<message>
 Pings all member(s) of a `RecruitmentStatus` with an optional message. Output is in the form of `author -> targets: message`.
+# Admin commands
+These commands may only be used by qualified users.
+## remove_from_queue \[user]
+Removes another user from the queue.
