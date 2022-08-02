@@ -1,12 +1,12 @@
 import discord
 from discord.ext import commands
-from enum import Enum
-from dataclasses import dataclass, field
+from enum import Enum, auto
+from dataclasses import dataclass
 import logging
 import yaml
 
 prefix = "."
-version = "T is for Testing"
+version = "A is for Alpha"
 intents = discord.Intents.default()
 intents.messages = True
 intents.members = True
@@ -17,9 +17,9 @@ logging.basicConfig(level=logging.INFO)
 
 
 class RecruitmentStatus(Enum):
-    READY = 0
+    READY = auto()
     # READY_CONDITIONAL = auto()
-    ACTIVE = 1
+    ACTIVE = auto()
 
     @classmethod
     async def convert(cls, ctx: commands.Context, role: str):
@@ -31,11 +31,11 @@ class RecruitmentStatus(Enum):
 
 @dataclass
 class RecruitQueue:
-    queue: dict[discord.Member: RecruitmentStatus] = field(default_factory=dict)
+    queue: dict[discord.Member: RecruitmentStatus]
     active_user: discord.Member | None = None
 
     def update_user(
-            self, user: discord.Member, status: RecruitmentStatus | None
+        self, user: discord.Member, status: RecruitmentStatus | None
     ) -> None:
         if status is None:
             if self.queue[user] == RecruitmentStatus.ACTIVE:
@@ -64,13 +64,13 @@ def save_recruiters_to_yaml(queue: dict, filename: str) -> None:
     )
 
 
-bot.RQ = RecruitQueue()
+bot.RQ = RecruitQueue({})
 
 
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
-    print("----------")
+    print("------")
     recruiters = load_recruiters_from_yaml("recruiters.yaml")
     bot.RQ = RecruitQueue(recruiters)
     await bot.get_channel(945513732115673192).send("I just restarted!")
@@ -80,9 +80,9 @@ async def on_ready():
 async def set_status(ctx: commands.Context, stat: str):
     try:
         if (
-                RecruitmentStatus[stat.upper()] == RecruitmentStatus.ACTIVE
-                and RecruitmentStatus.ACTIVE in bot.RQ.queue.values()
-                and bot.RQ.active_user is not None
+            RecruitmentStatus[stat.upper()] == RecruitmentStatus.ACTIVE
+            and RecruitmentStatus.ACTIVE in bot.RQ.queue.values()
+            and bot.RQ.active_user is not None
         ):
             await ctx.channel.send(
                 f"{bot.RQ.active_user} is already actively recruiting. Ask them to leave first."
@@ -169,6 +169,8 @@ async def remove_from_queue(ctx: commands.Context, user: discord.Member):
 async def remove_from_queue_error(error, ctx):
     if isinstance(error, commands.CheckFailure):
         await ctx.channel.send("Yikes sweaty, check your (Discord) privilege(s).")
+    else:
+        await ctx.channel.send(f"There was an error removing that user from the queue: {error}")
 
 
 bot.run(token)
